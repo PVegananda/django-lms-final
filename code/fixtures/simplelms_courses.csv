@@ -1,0 +1,6 @@
+name,description,price,teacher_username
+Pemrograman Web,Belajar membuat aplikasi web dengan Django dan Python,50000,dosen01
+Basis Data,Belajar SQL dan database relasional dengan PostgreSQL,45000,dosen01
+Algoritma dan Struktur Data,Belajar algoritma pemrograman dan struktur data,40000,dosen02
+Jaringan Komputer,Belajar konsep networking dan protokol komunikasi,55000,dosen02
+Keamanan Siber,Belajar prinsip-prinsip keamanan informasi dan enkripsi,60000,dosen03

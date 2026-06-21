@@ -1,0 +1,14 @@
+# Panduan HTML (tidak perlu di-commit ke repo)
+panduan/
+
+# Misc
+MODUL_08_SUMMARY.md
+*.pyc
+__pycache__/
+.DS_Store
+*.egg-info/
+dist/
+build/
+.env
+htmlcov/
+.coverage
