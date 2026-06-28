@@ -898,3 +898,253 @@ def report_status(request, task_id: str):
         response['message'] = 'Task masih dalam proses, coba lagi beberapa saat...'
 
     return response
+
+
+# ============================================================================
+# PROGRESS ENDPOINTS — tracking belajar student (Final Project)
+# ============================================================================
+
+from courses.schemas import ProgressIn, ProgressOut, CategoryOut
+from courses.models import Progress, Category
+from django.utils import timezone as tz
+
+
+@apiv1.post('progress/', auth=apiAuth, response={200: dict, 201: dict}, tags=["Progress"])
+def update_progress(request, data: ProgressIn):
+    """
+    Update atau buat progress belajar student untuk satu konten.
+
+    Satu student hanya punya satu record progress per konten.
+    Kalau sudah ada, akan di-update. Kalau belum, akan dibuat baru.
+
+    Saat status = 'completed', field completed_at otomatis terisi.
+
+    Request body:
+    - content_id : ID konten yang sedang dipelajari
+    - status     : not_started | in_progress | completed
+
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+    content = get_object_or_404(CourseContent, pk=data.content_id)
+    course = content.course_id
+
+    # Cek apakah student terdaftar di course ini
+    if not CourseMember.objects.filter(user_id=user, course_id=course).exists():
+        raise HttpError(403, "Kamu belum terdaftar di course ini")
+
+    completed_at = tz.now() if data.status == 'completed' else None
+
+    progress, created = Progress.objects.update_or_create(
+        user=user,
+        content=content,
+        defaults={
+            'course': course,
+            'status': data.status,
+            'completed_at': completed_at,
+        }
+    )
+
+    result = {
+        'id': progress.id,
+        'content_id': progress.content_id,
+        'course_id': progress.course_id,
+        'status': progress.status,
+        'completed_at': str(progress.completed_at) if progress.completed_at else None,
+        'message': 'Progress berhasil dibuat' if created else 'Progress berhasil diperbarui'
+    }
+
+    return (201, result) if created else (200, result)
+
+
+@apiv1.get('progress/my/', auth=apiAuth, tags=["Progress"])
+def my_progress(request, course_id: int = None):
+    """
+    Ambil semua progress belajar milik user saat ini.
+
+    Query parameter opsional:
+    - course_id : filter hanya tampilkan progress dari course tertentu
+
+    Response: list progress dengan status dan waktu selesai
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+    qs = Progress.objects.filter(user=user).select_related('course', 'content')
+
+    if course_id:
+        qs = qs.filter(course_id=course_id)
+
+    data = []
+    for p in qs:
+        data.append({
+            'id': p.id,
+            'course_id': p.course_id,
+            'course_name': p.course.name,
+            'content_id': p.content_id,
+            'content_name': p.content.name,
+            'status': p.status,
+            'completed_at': str(p.completed_at) if p.completed_at else None,
+            'updated_at': str(p.updated_at),
+        })
+
+    total = len(data)
+    completed = sum(1 for p in data if p['status'] == 'completed')
+
+    return {
+        'total': total,
+        'completed': completed,
+        'completion_rate': f"{round(completed / total * 100)}%" if total else "0%",
+        'progress': data,
+    }
+
+
+@apiv1.get('progress/course/{course_id}/', auth=apiAuth, tags=["Progress"])
+def course_progress_summary(request, course_id: int):
+    """
+    Ringkasan progress semua student di sebuah course.
+
+    Hanya teacher course atau superadmin yang bisa akses.
+
+    Path parameter:
+    - course_id : ID course
+
+    Response: statistik completion per konten
+    Authentication: Wajib login (teacher atau admin)
+    """
+    user = User.objects.get(pk=request.user.id)
+    course = get_object_or_404(Course, pk=course_id)
+
+    if course.teacher != user and not user.is_superuser:
+        raise HttpError(403, "Hanya teacher course yang bisa lihat progress seluruh student")
+
+    from django.db.models import Count, Q
+
+    contents = CourseContent.objects.filter(course_id=course).annotate(
+        total_progress=Count('progress_list'),
+        completed_count=Count('progress_list', filter=Q(progress_list__status='completed')),
+        in_progress_count=Count('progress_list', filter=Q(progress_list__status='in_progress')),
+    )
+
+    result = []
+    for c in contents:
+        result.append({
+            'content_id': c.id,
+            'content_name': c.name,
+            'total_students_tracked': c.total_progress,
+            'completed': c.completed_count,
+            'in_progress': c.in_progress_count,
+        })
+
+    return {
+        'course_id': course_id,
+        'course_name': course.name,
+        'total_contents': len(result),
+        'contents_progress': result,
+    }
+
+
+# ============================================================================
+# CATEGORY ENDPOINTS — untuk filter course (Final Project)
+# ============================================================================
+
+@apiv1.get('categories/', response=List[CategoryOut], tags=["Categories"])
+def list_categories(request):
+    """
+    Daftar semua kategori course yang tersedia.
+
+    Digunakan untuk filter di endpoint GET /courses/?category_id=...
+    """
+    return Category.objects.all().order_by('name')
+
+
+@apiv1.post('categories/', auth=apiAuth, response={201: CategoryOut}, tags=["Categories"])
+def create_category(request, name: str, description: str = '-'):
+    """
+    Buat kategori baru.
+
+    Hanya superadmin yang bisa membuat kategori.
+
+    Authentication: Wajib login (superadmin)
+    """
+    user = User.objects.get(pk=request.user.id)
+    if not user.is_superuser:
+        raise HttpError(403, "Hanya admin yang bisa membuat kategori")
+
+    if Category.objects.filter(name=name).exists():
+        raise HttpError(400, f"Kategori '{name}' sudah ada")
+
+    cat = Category.objects.create(name=name, description=description)
+    return 201, cat
+
+
+# ============================================================================
+# CACHE STATUS ENDPOINT — monitoring Redis cache (Final Project)
+# ============================================================================
+
+@apiv1.get('cache/status/', auth=apiAuth, tags=["Cache"])
+def cache_status(request):
+    """
+    Lihat status cache Redis saat ini.
+
+    Menampilkan info keys yang aktif di cache, berguna untuk debugging
+    dan memastikan cache invalidation berjalan dengan benar.
+
+    Authentication: Wajib login (superadmin)
+    """
+    user = User.objects.get(pk=request.user.id)
+    if not user.is_superuser:
+        raise HttpError(403, "Hanya admin yang bisa lihat status cache")
+
+    from django_redis import get_redis_connection
+    r = get_redis_connection("default")
+
+    # Ambil semua keys dengan prefix project ini
+    prefix = "lms"
+    pattern = f":1:{prefix}:*"
+    keys = r.keys(pattern)
+
+    key_list = []
+    for k in keys[:50]:  # batasi 50 keys
+        key_str = k.decode() if isinstance(k, bytes) else k
+        ttl = r.ttl(k)
+        key_list.append({
+            'key': key_str,
+            'ttl_seconds': ttl,
+        })
+
+    return {
+        'total_keys': len(keys),
+        'showing': len(key_list),
+        'keys': key_list,
+        'note': 'TTL = -1 artinya tidak expire, -2 artinya key tidak ditemukan'
+    }
+
+
+@apiv1.delete('cache/clear/', auth=apiAuth, tags=["Cache"])
+def clear_cache(request):
+    """
+    Hapus semua cache course list dan detail.
+
+    Berguna saat ada perubahan data yang belum ter-refresh di cache.
+
+    Authentication: Wajib login (superadmin)
+    """
+    user = User.objects.get(pk=request.user.id)
+    if not user.is_superuser:
+        raise HttpError(403, "Hanya admin yang bisa hapus cache")
+
+    # Hapus key-key cache course
+    cache.delete('courses_list')
+
+    # Hapus semua cache course_detail:*
+    from django_redis import get_redis_connection
+    r = get_redis_connection("default")
+    pattern = ":1:lms:course_detail:*"
+    keys = r.keys(pattern)
+    if keys:
+        r.delete(*keys)
+
+    return {
+        'message': f"Cache berhasil dihapus. {len(keys) + 1} key dihapus.",
+        'deleted_keys': len(keys) + 1,
+    }

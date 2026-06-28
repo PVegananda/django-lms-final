@@ -165,3 +165,47 @@ class CommentOut(Schema):
     content_id: int
     created_at: datetime
     updated_at: datetime
+
+
+# =============================================================================
+# Schema tambahan untuk Final Project
+# =============================================================================
+
+class CategoryOut(Schema):
+    """Schema untuk output data Category."""
+    id: int
+    name: str
+    description: str
+    created_at: datetime
+
+
+class CourseOutWithCategory(CourseOut):
+    """Schema Course dengan info category (untuk endpoint search/filter)."""
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+
+
+class ProgressIn(Schema):
+    """Schema untuk input update progress belajar student."""
+    content_id: int
+    status: str = 'in_progress'  # not_started | in_progress | completed
+
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v):
+        allowed = ['not_started', 'in_progress', 'completed']
+        if v not in allowed:
+            raise ValueError(f"Status harus salah satu dari: {', '.join(allowed)}")
+        return v
+
+
+class ProgressOut(Schema):
+    """Schema untuk output data progress belajar."""
+    id: int
+    user_id: int
+    course_id: int
+    content_id: int
+    status: str
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
