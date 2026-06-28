@@ -1,246 +1,206 @@
-![Django](https://img.shields.io/badge/Django-5.0-darkgreen?style=for-the-badge&logo=django)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)
-![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)
+# Django LMS Final Project
 
-# Django Ninja - Simple LMS API
-
-REST API untuk Simple Learning Management System menggunakan Django Ninja. Project ini adalah praktik modul 06 dari Pemrograman Sisi Server.
-
-## Apa ini?
-
-Ini project untuk belajar cara bikin REST API yang proper. Pake Django Ninja yang lebih modern dibanding DRF, dengan type hints dan otomatis documentation.
-
-## Setup
-
-### Prerequisites
-- Docker & Docker Compose
-- MacBook Air M2 (atau linux/windows dengan docker)
-
-### Jalanin Project
-
-```bash
-# Build docker image
-docker-compose build
-
-# Start containers
-docker-compose up -d
-
-# Run migrations
-docker-compose exec app python manage.py migrate
-
-# Seed database (optional, tapi ada 100 courses ready)
-docker-compose exec app python manage.py seed_data
-```
-
-Server siap di `http://localhost:8000`
-
-## API Endpoints
-
-### Courses
-- `GET /api/v1/courses/` - List semua courses
-- `GET /api/v1/courses/?search=python` - Cari courses
-- `GET /api/v1/courses/?min_price=50000&max_price=100000` - Filter harga
-- `GET /api/v1/courses/{id}` - Detail course + contents
-- `POST /api/v1/courses/` - Buat course baru
-- `PUT /api/v1/courses/{id}` - Update course
-- `DELETE /api/v1/courses/{id}` - Hapus course
-
-### Contents
-- `GET /api/v1/contents/` - List contents
-- `GET /api/v1/contents/?course_id=1` - Filter by course
-- `GET /api/v1/contents/{id}` - Detail content
-- `POST /api/v1/contents/` - Buat content
-- `PUT /api/v1/contents/{id}` - Update content
-- `DELETE /api/v1/contents/{id}` - Hapus content
-
-### Documentation
-- `GET /api/v1/docs` - Swagger UI (best untuk testing)
-- `GET /api/v1/openapi.json` - OpenAPI schema
-
-### Test
-- `GET /api/v1/hello/` - Sanity check
-
-## Test Endpoints
-
-### Via curl
-```bash
-# List courses
-curl http://localhost:8000/api/v1/courses/
-
-# Search courses
-curl "http://localhost:8000/api/v1/courses/?search=Pemrograman"
-
-# Detail course
-curl http://localhost:8000/api/v1/courses/1
-
-# Create course
-curl -X POST http://localhost:8000/api/v1/courses/ \
-  -H "Content-Type: application/json" \
-  -d '{"name":"My Course","description":"Cool stuff","price":99999}'
-
-# List contents
-curl http://localhost:8000/api/v1/contents/
-
-# Filter contents by course
-curl "http://localhost:8000/api/v1/contents/?course_id=1"
-```
-
-### Via Swagger UI
-Buka browser ke `http://localhost:8000/api/v1/docs` dan test langsung dari sana. Jauh lebih enak.
-
-## Project Structure
-
-```
-code/
-├── courses/
-│   ├── apiv1.py          # API endpoints definition
-│   ├── schemas.py        # Pydantic schemas (input/output validation)
-│   ├── models.py         # Django models (Course, Content, dll)
-│   ├── views.py          # Django views (from previous modules)
-│   ├── urls.py           # Course app URLs
-│   ├── admin.py          # Django admin
-│   ├── tests.py
-│   └── migrations/       # Database migrations
-├── lms/
-│   ├── urls.py           # Main URL config (API routes registered here)
-│   ├── settings.py       # Django settings
-│   ├── wsgi.py
-│   └── asgi.py
-├── manage.py
-└── requirements.txt
-
-docker-compose.yml       # Docker configuration
-Dockerfile              # Python + PostgreSQL setup
-```
-
-## Key Features
-
-✅ **Type-Safe** - Python type hints everywhere  
-✅ **Auto Docs** - Swagger UI generated otomatis  
-✅ **Validation** - Pydantic schemas handle validation  
-✅ **CRUD Ready** - 10 endpoints siap pakai  
-✅ **Query Params** - Search, filter, sorting built-in  
-✅ **Error Handling** - Proper HTTP status codes  
-✅ **Optimized** - select_related & prefetch_related  
-✅ **Nested Data** - Relasi Course → Teacher, Course → Contents  
-
-## Database
-
-PostgreSQL running di container. Default credentials di `docker-compose.yml`:
-- User: `postgres`
-- Password: `postgres`
-- Database: `lms_db`
-- Port: `5436`
-
-Sudah ada 100+ courses dengan teacher dan content data ready.
-
-## Modul 07: Authentication & Authorization
-
-### Fitur Baru (JWT Token-Based)
-- User registration dengan validasi duplikasi
-- Login & token generation (access + refresh token)
-- Token refresh tanpa login ulang
-- Protected endpoints dengan Bearer token
-- Role-Based Access Control (RBAC)
-- Authorization checks pada setiap endpoint
-
-### Auth Endpoints
-- `POST /api/v1/register/` - Daftar user baru
-- `POST /api/v1/auth/sign-in` - Login & dapat token
-- `POST /api/v1/auth/token-refresh` - Refresh access token
-
-### User Functions
-- `POST /api/v1/course/{id}/enroll/` - Daftar ke course (auth required)
-- `GET /api/v1/mycourses/` - List course yang diikuti (auth required)
-
-### Comment Management (dengan Authorization)
-- `POST /api/v1/comments/` - Buat komentar (hanya member)
-- `PUT /api/v1/comments/{id}` - Edit komentar (hanya owner)
-- `DELETE /api/v1/comments/{id}` - Hapus komentar (owner/teacher/admin)
-
-### Protected Endpoints
-- `POST /api/v1/courses/` - Buat course (auth + auto teacher)
-- `PUT /api/v1/courses/{id}` - Edit course (auth + owner only)
-- `DELETE /api/v1/courses/{id}` - Hapus course (owner/admin)
-- Content CRUD juga dilindungi (owner only)
-
-### Test di Swagger UI
-1. Register user: `POST /register/` → dapat user ID
-2. Login: `POST /auth/sign-in` → dapat tokens
-3. Klik "Authorize" di Swagger → masukkan access token
-4. Semua request otomatis include token
-
-## Commits
-
-Project ini dibuat step-by-step dengan jelas commit history:
-
-```
-aa7348d - 9: Setup script untuk migrations & seed data
-84207cc - 8.1-8.3: Proteksi Content CRUD (owner only)
-fad76ca - 7.1-7.3: Comment CRUD dengan full authorization
-487143f - 6.1-6.2: Course enrollment & mycourses endpoints
-a80ef43 - 5.1-5.3: Proteksi Course CRUD (auth + owner checks)
-6182f08 - 4.1-4.5: Register endpoint dengan validasi
-fa49f4a - 3.1-3.3: Schemas untuk auth & comments
-346cb4f - 2: Auth router & HttpJwtAuth
-115c488 - 1.1-1.2: Setup JWT (requirements + INSTALLED_APPS)
-```
-
-Plus Modul 06 commits untuk CRUD endpoints dasar.
-
-## Apa yang Dipelajari
-
-- Web Service vs Web Application
-- REST principles & HTTP methods
-- Pydantic schemas untuk validation
-- CRUD operations
-- Query parameters & filtering
-- Error handling
-- **JWT Token-based Authentication** (Modul 07)
-- **Authorization & Access Control** (Modul 07)
-- **RBAC - Role-Based Access Control** (Modul 07)
-- Auto-generated API documentation
-- Django Ninja basics
-
-## Next Steps
-
-- Modul 07: Authentication & Authorization (JWT tokens)
-- Modul 08: Advanced filtering & pagination
-- Modul 09: Rate limiting & caching
-- Deployment ke production
-
-## Troubleshooting
-
-### Container error?
-```bash
-docker-compose logs app
-```
-
-### Migrations failed?
-```bash
-docker-compose exec app python manage.py migrate --fake-initial
-```
-
-### Perlu seed data lagi?
-```bash
-docker-compose exec app python manage.py seed_data
-```
-
-### API tidak respond?
-```bash
-docker-compose restart app
-sleep 5
-curl http://localhost:8000/api/v1/hello/
-```
-
-## Notes
-
-- Teacher di-hardcode ke user pertama (di Modul 07 akan pakai authentication)
-- Ini project belajar, jadi tidak untuk production
-- Database di-reset setiap kali docker rebuild
-- Linux/Windows user harus adjust docker-compose.yml untuk volume paths
+Project ini adalah pengembangan lanjutan dari **Simple LMS** yang dibuat di tugas sebelumnya.
+Dibangun menggunakan **Django Ninja** (REST API) dengan stack lengkap:
+PostgreSQL, Redis, MongoDB, RabbitMQ, dan Celery.
 
 ---
 
-**Made for learning. Reference from:** https://classroom.fahrifirdaus.my.id/book/pemrograman-sisi-server/chapter/06-rest-api-dasar/
+## Cara Menjalankan
+
+### Prasyarat
+- Docker Desktop sudah terinstall dan berjalan
+- Git
+
+### 1. Clone dan setup environment
+```bash
+git clone <URL_REPO_INI>
+cd django-lms-final
+
+# Salin template env
+cp .env.example .env
+# (opsional) edit .env jika ingin ubah password atau konfigurasi lain
+```
+
+### 2. Jalankan semua services
+```bash
+docker compose up -d --build
+```
+
+Services yang akan berjalan:
+| Service | Port | Keterangan |
+|---------|------|------------|
+| `app` | 8000 | Django API |
+| `database` | 5436 | PostgreSQL |
+| `redis` | 6379 | Cache + Session + Celery result |
+| `mongodb` | 27017 | Analytics & activity log |
+| `rabbitmq` | 5672 / 15672 | Message broker (UI: :15672) |
+| `celery_worker` | — | Async task worker |
+| `celery_beat` | — | Periodic task scheduler |
+
+### 3. Jalankan migrasi database
+```bash
+docker compose exec app python manage.py migrate
+```
+
+### 4. Isi data demo
+```bash
+# Seed data utama (users, courses, contents, dll)
+docker compose exec app python manage.py seed_data
+
+# Import data dari SimpleLMS (project sebelumnya)
+docker compose exec app python manage.py import_from_simplelms
+
+# Isi data analytics MongoDB
+docker compose exec app python manage.py seed_analytics --count 200
+
+# Generate JWT key (wajib untuk login)
+docker compose exec app python manage.py make_jwt_key
+```
+
+### 5. Buat superuser (admin)
+```bash
+docker compose exec app python manage.py createsuperuser
+```
+
+---
+
+## Akun Demo
+
+Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
+
+| Role | Username | Password | Keterangan |
+|------|----------|----------|------------|
+| **Instructor** | `dosen01` | `password123` | Teacher course 1-10 |
+| **Instructor** | `dosen02` | `password123` | Teacher course 11-20 |
+| **Student** | `siswa01` | `password123` | Enrolled di beberapa course |
+| **Student** | `siswa02` | `password123` | Enrolled di beberapa course |
+| **Admin** | (buat sendiri) | (buat sendiri) | Akses penuh via `createsuperuser` |
+
+---
+
+## Dokumentasi API (Swagger)
+
+| API | URL | Keterangan |
+|-----|-----|------------|
+| **API v1** | http://localhost:8000/api/v1/docs | Endpoint utama LMS |
+| **API v2** | http://localhost:8000/api/v2/docs | Enhanced + Lab Optimization |
+| **Analytics** | http://localhost:8000/api/analytics/docs | MongoDB analytics |
+| **Admin Panel** | http://localhost:8000/admin/ | Django Admin |
+| **DB Profiling** | http://localhost:8000/silk/ | Query profiler |
+| **RabbitMQ UI** | http://localhost:15672/ | `admin` / `password123` |
+
+---
+
+## Endpoint Penting
+
+### Authentication
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| POST | `/api/v1/register/` | Daftar akun baru |
+| POST | `/api/v1/auth/sign-in` | Login, dapat JWT token |
+| POST | `/api/v1/auth/token-refresh` | Refresh access token |
+
+### Courses
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| GET | `/api/v1/courses/` | — | Daftar course (search, filter, sort, pagination) |
+| GET | `/api/v1/courses/{id}` | — | Detail course |
+| POST | `/api/v1/courses/` | ✅ | Buat course baru |
+| PUT | `/api/v1/courses/{id}` | ✅ | Update course (owner only) |
+| DELETE | `/api/v1/courses/{id}` | ✅ | Hapus course (owner/admin) |
+| GET | `/api/v1/courses/popular/` | — | Top 10 course (Redis leaderboard) |
+| POST | `/api/v1/course/{id}/enroll/` | ✅ | Daftar ke course |
+| GET | `/api/v1/mycourses/` | ✅ | Course yang diikuti |
+
+### Progress Belajar
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| POST | `/api/v1/progress/` | ✅ | Update status belajar per konten |
+| GET | `/api/v1/progress/my/` | ✅ | Progress saya + completion rate |
+| GET | `/api/v1/progress/course/{id}/` | ✅ (teacher) | Summary progress semua student |
+
+### Category & Filter
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| GET | `/api/v1/categories/` | — | Daftar kategori |
+| POST | `/api/v1/categories/` | ✅ (admin) | Buat kategori |
+
+### Contents & Comments
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| GET | `/api/v1/contents/` | — | Daftar konten (filter by course) |
+| POST | `/api/v1/contents/` | ✅ | Buat konten (teacher only) |
+| POST | `/api/v1/comments/` | ✅ | Komentar konten (harus enrolled) |
+
+### Reports (Celery Async)
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| POST | `/api/v1/reports/generate/{course_id}/` | ✅ | Generate report (async) |
+| GET | `/api/v1/reports/status/{task_id}/` | — | Cek status task |
+
+### Analytics (MongoDB)
+| Method | Endpoint | Keterangan |
+|--------|----------|------------|
+| GET | `/api/analytics/stats/action-summary/` | Ringkasan aksi user |
+| GET | `/api/analytics/stats/active-users/` | Top active users |
+| GET | `/api/analytics/stats/popular-courses/` | Course paling banyak dikunjungi |
+| GET | `/api/analytics/stats/daily/` | Statistik harian |
+
+### Cache & Monitoring
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| GET | `/api/v1/cache/status/` | ✅ (admin) | Lihat Redis cache keys |
+| DELETE | `/api/v1/cache/clear/` | ✅ (admin) | Bersihkan cache |
+
+---
+
+## Query Parameters (GET /courses/)
+
+| Parameter | Contoh | Keterangan |
+|-----------|--------|------------|
+| `search` | `?search=Python` | Cari berdasarkan nama/deskripsi |
+| `ordering` | `?ordering=price` | Urut: name, price, created_at (tambah `-` untuk descending) |
+| `page` | `?page=2` | Pagination, 10 item per halaman |
+
+---
+
+## Stack Teknologi
+
+| Komponen | Teknologi | Versi |
+|----------|-----------|-------|
+| Backend | Django + Django Ninja | 5.1 + 1.1 |
+| Database | PostgreSQL | 15 |
+| Cache | Redis + django-redis | 7 |
+| NoSQL | MongoDB + pymongo | 7 + 4.6 |
+| Message Broker | RabbitMQ | 3 |
+| Async Tasks | Celery + Celery Beat | 5.3 |
+| Auth | JWT (ninja-simple-jwt) | — |
+| Profiling | Django Silk | 5.1 |
+| Container | Docker + Docker Compose | — |
+
+---
+
+## Struktur Project
+
+```
+django-lms-final/
+├── code/
+│   ├── courses/          # App utama LMS
+│   │   ├── models.py     # Course, Category, Member, Content, Comment, Progress
+│   │   ├── apiv1.py      # REST API v1 (endpoint utama)
+│   │   ├── apiv2.py      # REST API v2 (enhanced + lab optimization)
+│   │   ├── schemas.py    # Pydantic schemas
+│   │   ├── tasks.py      # Celery async tasks
+│   │   └── filters.py    # Filter classes
+│   ├── analytics/        # MongoDB analytics
+│   ├── lms/              # Django project config
+│   │   ├── settings.py   # Config (pakai env variables)
+│   │   ├── celery.py     # Celery config
+│   │   └── urls.py       # URL routing
+│   ├── utils/            # Redis & MongoDB client helpers
+│   └── fixtures/         # Data CSV dari SimpleLMS
+├── .env.example          # Template environment variables
+├── docker-compose.yml    # Stack lengkap 7 services
+└── Dockerfile
+```
