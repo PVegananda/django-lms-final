@@ -1,11 +1,18 @@
 from django.contrib import admin
-from .models import Course, CourseMember, CourseContent, Comment
+from .models import Course, CourseMember, CourseContent, Comment, Category, Progress
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'created_at')
+    search_fields = ('name',)
+    ordering = ('name',)
 
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('name', 'teacher', 'price', 'created_at')
-    list_filter = ('teacher', 'created_at')
+    list_display = ('name', 'teacher', 'category', 'price', 'created_at')
+    list_filter = ('teacher', 'category', 'created_at')
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
 
@@ -27,3 +34,11 @@ class CourseContentAdmin(admin.ModelAdmin):
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('content_id', 'user_id', 'comment')
     list_filter = ('content_id',)
+
+
+@admin.register(Progress)
+class ProgressAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'content', 'status', 'completed_at')
+    list_filter = ('status', 'course')
+    search_fields = ('user__username', 'content__name')
+    ordering = ('-updated_at',)

@@ -3,6 +3,27 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+# =============================================================================
+# Category — hasil tambahan untuk fitur search & filter (Final Project)
+# =============================================================================
+
+class Category(models.Model):
+    name = models.CharField("nama kategori", max_length=100, unique=True)
+    description = models.TextField("deskripsi", default='-', blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Kategori"
+        verbose_name_plural = "Kategori"
+
+
+# =============================================================================
+# Course
+# =============================================================================
+
 class Course(models.Model):
     name = models.CharField("nama matkul", max_length=100)
     description = models.TextField("deskripsi", default='-')
@@ -12,6 +33,15 @@ class Course(models.Model):
         User,
         verbose_name="pengajar",
         on_delete=models.RESTRICT
+    )
+    # tambahan: category untuk fitur filter (Final Project)
+    category = models.ForeignKey(
+        Category,
+        verbose_name="kategori",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="courses"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -110,3 +140,53 @@ class Comment(models.Model):
     class Meta:
         verbose_name = "Komentar"
         verbose_name_plural = "Komentar"
+
+
+# =============================================================================
+# Progress — hasil tambahan untuk tracking belajar student (Final Project)
+# =============================================================================
+
+PROGRESS_STATUS = [
+    ('not_started', 'Belum Dimulai'),
+    ('in_progress', 'Sedang Belajar'),
+    ('completed', 'Selesai'),
+]
+
+
+class Progress(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name="student",
+        on_delete=models.CASCADE,
+        related_name="progress_list"
+    )
+    course = models.ForeignKey(
+        Course,
+        verbose_name="matkul",
+        on_delete=models.CASCADE,
+        related_name="progress_list"
+    )
+    content = models.ForeignKey(
+        CourseContent,
+        verbose_name="konten",
+        on_delete=models.CASCADE,
+        related_name="progress_list"
+    )
+    status = models.CharField(
+        "status",
+        max_length=15,
+        choices=PROGRESS_STATUS,
+        default='not_started'
+    )
+    completed_at = models.DateTimeField("selesai pada", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Progress Belajar"
+        verbose_name_plural = "Progress Belajar"
+        # satu user hanya punya satu progress per content
+        unique_together = [('user', 'content')]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.content.name} ({self.status})"
