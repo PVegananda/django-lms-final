@@ -1,28 +1,37 @@
 """
-Django settings untuk Simple LMS - Modul 12: Message Brokers & Async Tasks
+Django settings untuk Django LMS Final Project
 
-Melanjutkan dari modul-modul sebelumnya dengan tambahan:
-- Celery + RabbitMQ untuk asynchronous task processing
-- Celery Beat untuk periodic tasks (cron jobs)
-- Redis sebagai result backend Celery (DB 2)
+Stack:
+- PostgreSQL    : database utama
+- Redis         : cache, session, celery result backend
+- MongoDB       : analytics & activity logging
+- RabbitMQ      : message broker untuk Celery
+- Celery        : async task processing
+- Celery Beat   : periodic/scheduled tasks
 """
 
 import os
 from pathlib import Path
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: jangan gunakan key ini di production!
-SECRET_KEY = "django-insecure-lab05-db-optimization-simple-lms-key-2025"
+# ---------------------------------------------------------------------------
+# SECRET KEY — ambil dari env, fallback hanya untuk development lokal
+# Di production WAJIB set env variable SECRET_KEY
+# ---------------------------------------------------------------------------
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-dev-only-change-in-production-final-project-2025'
+)
 
-# SECURITY WARNING: matikan DEBUG di production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 
 # =============================================================================
-# Aplikasi yang terdaftar
+# Aplikasi
 # =============================================================================
 
 INSTALLED_APPS = [
@@ -32,10 +41,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "silk",                 # Django Silk - query profiling (Modul 05)
-    "ninja_simple_jwt",     # JWT authentication (Modul 07)
-    "courses",              # Aplikasi Simple LMS kita
-    "analytics",            # Analytics app berbasis MongoDB (Modul 11)
+    "silk",             # query profiling
+    "ninja_simple_jwt", # JWT authentication
+    "courses",          # app utama LMS
+    "analytics",        # analytics berbasis MongoDB
 ]
 
 
@@ -45,7 +54,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "silk.middleware.SilkyMiddleware",  # Silk harus di posisi awal (setelah Security)
+    "silk.middleware.SilkyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -76,34 +85,23 @@ WSGI_APPLICATION = "lms.wsgi.application"
 
 
 # =============================================================================
-# Database - PostgreSQL (sesuai docker-compose.yml)
+# Database — PostgreSQL, semua config dari env variable
 # =============================================================================
-# Berbeda dengan Lab-compliance yang menggunakan SQLite,
-# lab ini menggunakan PostgreSQL agar optimasi index terlihat nyata.
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "lms_db",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "database",  # Nama service di docker-compose.yml
-        "PORT": "5432",
+        "NAME": os.environ.get('DB_NAME', 'lms_db'),
+        "USER": os.environ.get('DB_USER', 'postgres'),
+        "PASSWORD": os.environ.get('DB_PASSWORD', 'postgres'),
+        "HOST": os.environ.get('DB_HOST', 'database'),
+        "PORT": os.environ.get('DB_PORT', '5432'),
     }
 }
 
 
 # =============================================================================
-# Django Silk - Konfigurasi Profiling
-# Akses dashboard di: http://localhost:8000/silk/
-# =============================================================================
-
-SILKY_PYTHON_PROFILER = True   # Aktifkan function-level profiling
-SILKY_META = True              # Track query Silk sendiri (untuk transparansi)
-
-
-# =============================================================================
-# Password validation
+# Password Validation
 # =============================================================================
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -125,11 +123,10 @@ USE_TZ = True
 
 
 # =============================================================================
-# Static dan Media files
+# Static & Media
 # =============================================================================
 
 STATIC_URL = "static/"
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -137,42 +134,52 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # =============================================================================
-# Redis Cache Configuration - Modul 10: NoSQL Redis
+# Django Silk — Query Profiling
+# Dashboard: http://localhost:8000/silk/
 # =============================================================================
-# django-redis sebagai backend cache, menyimpan data di Redis db 1
-# KEY_PREFIX: namespace untuk menghindari collision dengan key lain
-# TIMEOUT: default TTL 5 menit (300 detik)
+
+SILKY_PYTHON_PROFILER = True
+SILKY_META = True
+
+
+# =============================================================================
+# Redis Cache
+# DB 0 : leaderboard (ZSet)
+# DB 1 : cache & session
+# DB 2 : Celery result backend
+# =============================================================================
+
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379')
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis:6379/1",
+        "LOCATION": f"{REDIS_URL}/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
-        "KEY_PREFIX": "simple_lms",
-        "TIMEOUT": 300,  # Default TTL: 5 menit
+        "KEY_PREFIX": "lms",
+        "TIMEOUT": 300,  # 5 menit default TTL
     }
 }
 
-
-# =============================================================================
-# Session Configuration - Redis Session Backend
-# =============================================================================
-# Menggunakan Redis (via cache) sebagai session store,
-# jauh lebih cepat daripada database session default.
-
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
-SESSION_COOKIE_AGE = 86400          # 24 jam dalam detik
-SESSION_SAVE_EVERY_REQUEST = False  # Hanya save jika session berubah
+SESSION_COOKIE_AGE = 86400
+SESSION_SAVE_EVERY_REQUEST = False
 
 
 # =============================================================================
-# Celery Configuration - Modul 12: Message Brokers & Async Tasks
+# MongoDB — Analytics & Activity Logging
 # =============================================================================
-# Broker: RabbitMQ (AMQP) untuk mengantri task
-# Result Backend: Redis DB 2 untuk menyimpan hasil task
+
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://mongodb:27017')
+MONGODB_DB_NAME = os.environ.get('MONGODB_DB_NAME', 'lms_analytics')
+
+
+# =============================================================================
+# Celery — Async Task Queue (RabbitMQ broker + Redis result)
+# =============================================================================
 
 CELERY_BROKER_URL = os.environ.get(
     'CELERY_BROKER_URL',
@@ -181,40 +188,33 @@ CELERY_BROKER_URL = os.environ.get(
 
 CELERY_RESULT_BACKEND = os.environ.get(
     'CELERY_RESULT_BACKEND',
-    'redis://redis:6379/2'
+    f'{REDIS_URL}/2'
 )
 
-# Serialisasi pesan dalam format JSON (aman dan universal)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-
-# Timezone sesuai dengan Django (Asia/Jakarta)
 CELERY_TIMEZONE = 'Asia/Jakarta'
+CELERY_RESULT_EXPIRES = 86400  # hasil task disimpan 1 hari
 
-# Pastikan task result tidak expired terlalu cepat (1 hari)
-CELERY_RESULT_EXPIRES = 86400
+# Task retry config
+CELERY_TASK_MAX_RETRIES = 3
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # retry setelah 60 detik
+
 
 # =============================================================================
-# Celery Beat - Periodic Tasks (cron jobs)
+# Celery Beat — Jadwal Task Otomatis
 # =============================================================================
-# Jadwal task yang berjalan otomatis tanpa trigger manual.
-# Celery Beat mengirim task ke queue sesuai jadwal,
-# Celery Worker yang mengeksekusinya.
-
-from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {
-    # Generate statistik harian setiap tengah malam
+    # Statistik harian — setiap tengah malam
     'daily-course-stats': {
         'task': 'courses.tasks.generate_daily_stats',
-        'schedule': crontab(hour=0, minute=0),  # Setiap hari pukul 00:00 WIB
-        'args': (),
+        'schedule': crontab(hour=0, minute=0),
     },
-    # Cleanup MongoDB activity logs yang sudah lebih dari 30 hari
+    # Cleanup log MongoDB lama — setiap jam 02:00
     'cleanup-old-activity-logs': {
         'task': 'courses.tasks.cleanup_old_logs',
-        'schedule': crontab(hour=2, minute=0),  # Setiap hari pukul 02:00 WIB
-        'args': (),
+        'schedule': crontab(hour=2, minute=0),
     },
 }
