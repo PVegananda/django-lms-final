@@ -1,14 +1,35 @@
-# Panduan HTML (tidak perlu di-commit ke repo)
+# Panduan HTML (jangan commit)
 panduan/
 
-# Misc
-MODUL_08_SUMMARY.md
+# Environment variables — JANGAN commit .env asli!
+.env
+.env.*.local
+
+# JWT keys — generated, jangan commit
+code/jwt-signing.pem
+code/jwt-signing.pub
+*.pem
+*.pub
+
+# Celery
+code/celerybeat-schedule
+celerybeat-schedule
+
+# Python
 *.pyc
 __pycache__/
-.DS_Store
 *.egg-info/
 dist/
 build/
-.env
+
+# Django
 htmlcov/
 .coverage
+
+# Mac/IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Docs tidak perlu
+MODUL_08_SUMMARY.md
