@@ -1292,3 +1292,98 @@ def delete_review(request, review_id: int):
     cache.delete(f'course_detail:{course_id}')
 
     return 204, None
+
+
+# ============================================================================
+# DASHBOARD MAHASISWA — ringkasan data personal (Final Project)
+# ============================================================================
+
+@apiv1.get('dashboard/', auth=apiAuth, tags=["Dashboard"])
+def student_dashboard(request):
+    """
+    Dashboard pribadi mahasiswa.
+
+    Menampilkan ringkasan:
+    - Jumlah course yang diikuti
+    - Progress belajar keseluruhan
+    - Review yang pernah diberikan
+    - Rekomendasi course populer yang belum diikuti
+
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+
+    # Course yang diikuti
+    enrollments = CourseMember.objects.filter(user_id=user).select_related('course_id')
+    enrolled_course_ids = [e.course_id_id for e in enrollments]
+
+    enrolled_courses = []
+    for e in enrollments:
+        c = e.course_id
+        enrolled_courses.append({
+            'course_id': c.id,
+            'course_name': c.name,
+            'role': e.roles,
+        })
+
+    # Progress keseluruhan
+    total_progress = Progress.objects.filter(user=user).count()
+    completed_progress = Progress.objects.filter(user=user, status='completed').count()
+    completion_rate = round(completed_progress / total_progress * 100) if total_progress > 0 else 0
+
+    # Review yang pernah diberikan
+    my_reviews = Review.objects.filter(user=user).select_related('course')
+    review_list = []
+    for r in my_reviews:
+        review_list.append({
+            'course_id': r.course_id,
+            'course_name': r.course.name,
+            'rating': r.rating,
+        })
+
+    # Rekomendasi: course populer yang BELUM diikuti
+    from django.db.models import Count
+    recommended = Course.objects.exclude(
+        id__in=enrolled_course_ids
+    ).annotate(
+        member_count=Count('coursemember')
+    ).order_by('-member_count')[:5]
+
+    recommendations = []
+    for c in recommended:
+        recommendations.append({
+            'course_id': c.id,
+            'course_name': c.name,
+            'price': c.price,
+            'total_members': c.member_count,
+        })
+
+    # Info profil
+    try:
+        profile_role = user.profile.role
+    except Exception:
+        profile_role = 'student'
+
+    return {
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+            'email': user.email,
+            'role': profile_role,
+        },
+        'enrolled_courses': {
+            'total': len(enrolled_courses),
+            'courses': enrolled_courses,
+        },
+        'progress': {
+            'total_tracked': total_progress,
+            'completed': completed_progress,
+            'completion_rate': f"{completion_rate}%",
+        },
+        'my_reviews': {
+            'total': len(review_list),
+            'reviews': review_list,
+        },
+        'recommendations': recommendations,
+    }
