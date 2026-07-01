@@ -4,7 +4,34 @@ Project ini adalah pengembangan lanjutan dari **Simple LMS** yang dibuat di tuga
 Dibangun menggunakan **Django Ninja** (REST API) dengan stack lengkap:
 PostgreSQL, Redis, MongoDB, RabbitMQ, dan Celery.
 
----
+### Referensi Repository Sebelumnya
+
+| Repo | Keterangan | Link |
+|------|------------|------|
+| **SimpleLMS** | Project awal (Tugas 1–5): Django + PostgreSQL, model dasar, DB optimization | https://github.com/PVegananda/simplelms |
+| **Django Ninja** | Lanjutan (Tugas 6–13): REST API, JWT, Redis, MongoDB, Celery | https://github.com/PVegananda/django-ninja |
+| **Final Project** | Repo ini — gabungan semua + fitur tambahan | (repo ini) |
+
+### Dokumentasi Per Tugas
+
+Setiap tugas sudah didokumentasikan dalam file `.md` masing-masing di folder `docs/`:
+
+| File | Tugas | Materi |
+|------|-------|--------|
+| [`docs/tugas-01.md`](docs/tugas-01.md) | Setup Environment | Docker install, hello-world |
+| [`docs/tugas-02.md`](docs/tugas-02.md) | Containerize App | Dockerfile, port mapping, volume |
+| [`docs/tugas-03.md`](docs/tugas-03.md) | Multi-Container | Docker Compose, Django+PostgreSQL+Redis |
+| [`docs/tugas-04.md`](docs/tugas-04.md) | Model dan Data | ERD, model, CSV import, query CRUD |
+| [`docs/tugas-05.md`](docs/tugas-05.md) | Performance Testing | Django Silk, N+1, optimasi, benchmark |
+| [`docs/tugas-06.md`](docs/tugas-06.md) | REST API | Django Ninja, schema, CRUD endpoints |
+| [`docs/tugas-07.md`](docs/tugas-07.md) | Auth & Authorization | JWT, register, login, role check |
+| [`docs/tugas-09.md`](docs/tugas-09.md) | Advanced API | Filter, sort, pagination, file upload, PATCH |
+| [`docs/tugas-10.md`](docs/tugas-10.md) | Automated Testing | Unit test, integration test, coverage, locust |
+| [`docs/tugas-11.md`](docs/tugas-11.md) | Redis | Cache, session, leaderboard, benchmark |
+| [`docs/tugas-12.md`](docs/tugas-12.md) | MongoDB Analytics | Activity logging, aggregation pipeline |
+| [`docs/tugas-13.md`](docs/tugas-13.md) | Message Brokers | Celery, RabbitMQ, periodic tasks, Flower |
+
+
 
 ## Cara Menjalankan
 
