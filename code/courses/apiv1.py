@@ -149,6 +149,8 @@ def list_courses(
     request,
     filters: CourseFilter = Query(...),
     ordering: str = '-created_at',
+    category_id: int = None,
+    instructor: str = None,
 ):
     """
     Mengambil daftar semua course dengan filtering, sorting, dan pagination.
@@ -163,6 +165,8 @@ def list_courses(
     - price: Tampilkan course dengan harga di atas nilai ini
     - created_at: Tampilkan course yang dibuat setelah tanggal tertentu
     - ordering: Urutan hasil (name, -name, price, -price, created_at, -created_at) (default: -created_at)
+    - category_id: Filter berdasarkan ID kategori
+    - instructor: Filter berdasarkan username instructor
     - page: Nomor halaman (default: 1, per-page: 10)
     """
     # Whitelist field yang boleh digunakan untuk sorting
@@ -173,8 +177,16 @@ def list_courses(
     # Query dengan select_related untuk optimasi
     qs = Course.objects.select_related('teacher').all()
 
-    # Terapkan filter
+    # Terapkan filter dari FilterSchema
     qs = filters.filter(qs)
+
+    # Filter berdasarkan kategori
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+
+    # Filter berdasarkan instructor (username)
+    if instructor:
+        qs = qs.filter(teacher__username__icontains=instructor)
 
     # Terapkan sorting
     qs = qs.order_by(ordering)
