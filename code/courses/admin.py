@@ -1,5 +1,26 @@
 from django.contrib import admin
-from .models import Course, CourseMember, CourseContent, Comment, Category, Progress
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from .models import Course, CourseMember, CourseContent, Comment, Category, Progress, UserProfile
+
+
+# UserProfile inline — tampil di halaman edit User
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name = "Profil"
+    verbose_name_plural = "Profil"
+
+
+# Extend default UserAdmin supaya ada inline profile
+class UserAdmin(BaseUserAdmin):
+    inlines = [UserProfileInline]
+
+
+# Unregister User bawaan, register ulang dengan inline
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
+
 
 
 @admin.register(Category)

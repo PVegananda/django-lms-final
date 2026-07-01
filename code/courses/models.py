@@ -1,6 +1,56 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+# =============================================================================
+# UserProfile — role system eksplisit (Final Project)
+# =============================================================================
+
+USER_ROLE_CHOICES = [
+    ('admin', 'Admin'),
+    ('instructor', 'Instructor'),
+    ('student', 'Student'),
+]
+
+
+class UserProfile(models.Model):
+    """
+    Profil tambahan untuk User.
+    Setiap user punya satu profile yang menyimpan role dan bio.
+    Dibuat otomatis saat user baru di-create lewat signal.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    role = models.CharField(
+        "peran",
+        max_length=10,
+        choices=USER_ROLE_CHOICES,
+        default='student'
+    )
+    bio = models.TextField("bio", blank=True, default='')
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role})"
+
+    class Meta:
+        verbose_name = "Profil User"
+        verbose_name_plural = "Profil User"
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Buat UserProfile otomatis saat User baru dibuat."""
+    if created:
+        # Jika user adalah superuser, set role admin
+        role = 'admin' if instance.is_superuser else 'student'
+        UserProfile.objects.create(user=instance, role=role)
+
 
 
 # =============================================================================
