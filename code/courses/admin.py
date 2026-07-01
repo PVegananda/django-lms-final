@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import Course, CourseMember, CourseContent, Comment, Category, Progress, UserProfile
+from .models import Course, CourseMember, CourseContent, Comment, Category, Progress, UserProfile, Review
 
 
 # UserProfile inline — tampil di halaman edit User
@@ -63,3 +63,11 @@ class ProgressAdmin(admin.ModelAdmin):
     list_filter = ('status', 'course')
     search_fields = ('user__username', 'content__name')
     ordering = ('-updated_at',)
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'rating', 'created_at')
+    list_filter = ('rating', 'course')
+    search_fields = ('user__username', 'course__name', 'comment')
+    ordering = ('-created_at',)

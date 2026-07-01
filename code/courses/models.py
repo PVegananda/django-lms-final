@@ -240,3 +240,53 @@ class Progress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.content.name} ({self.status})"
+
+
+# =============================================================================
+# Review — rating & review course oleh student (Final Project)
+# =============================================================================
+
+RATING_CHOICES = [
+    (1, '⭐'),
+    (2, '⭐⭐'),
+    (3, '⭐⭐⭐'),
+    (4, '⭐⭐⭐⭐'),
+    (5, '⭐⭐⭐⭐⭐'),
+]
+
+
+class Review(models.Model):
+    """
+    Review dan rating dari student untuk course yang sudah diikuti.
+    Satu student hanya bisa memberikan satu review per course.
+    """
+    user = models.ForeignKey(
+        User,
+        verbose_name="reviewer",
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+    course = models.ForeignKey(
+        Course,
+        verbose_name="course",
+        on_delete=models.CASCADE,
+        related_name="reviews"
+    )
+    rating = models.IntegerField(
+        "rating",
+        choices=RATING_CHOICES,
+        help_text="Rating 1-5"
+    )
+    comment = models.TextField("komentar review", blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Review"
+        verbose_name_plural = "Review"
+        unique_together = [('user', 'course')]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} → {self.course.name} ({self.rating}⭐)"
+
