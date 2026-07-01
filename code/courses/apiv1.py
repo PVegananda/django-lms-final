@@ -1148,3 +1148,147 @@ def clear_cache(request):
         'message': f"Cache berhasil dihapus. {len(keys) + 1} key dihapus.",
         'deleted_keys': len(keys) + 1,
     }
+
+
+# ============================================================================
+# REVIEW ENDPOINTS — rating & review course (Final Project)
+# ============================================================================
+
+from courses.schemas import ReviewIn, ReviewOut
+from courses.models import Review
+
+
+@apiv1.post('reviews/', auth=apiAuth, response={201: dict}, tags=["Reviews"])
+def create_review(request, data: ReviewIn):
+    """
+    Buat review untuk course yang sudah diikuti.
+
+    Satu student hanya bisa memberikan satu review per course.
+    Harus sudah enrolled di course tersebut.
+
+    Request body:
+    - course_id : ID course yang di-review
+    - rating    : 1–5
+    - comment   : komentar opsional
+
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+    course = get_object_or_404(Course, pk=data.course_id)
+
+    # Cek enrolled
+    if not CourseMember.objects.filter(user_id=user, course_id=course).exists():
+        raise HttpError(403, "Kamu harus enrolled di course ini untuk memberi review")
+
+    # Cek sudah pernah review
+    if Review.objects.filter(user=user, course=course).exists():
+        raise HttpError(400, "Kamu sudah pernah memberikan review untuk course ini")
+
+    review = Review.objects.create(
+        user=user,
+        course=course,
+        rating=data.rating,
+        comment=data.comment
+    )
+
+    # Invalidasi cache course detail
+    cache.delete(f'course_detail:{course.id}')
+
+    return 201, {
+        'id': review.id,
+        'course_id': course.id,
+        'course_name': course.name,
+        'rating': review.rating,
+        'comment': review.comment,
+        'message': 'Review berhasil dibuat'
+    }
+
+
+@apiv1.get('reviews/course/{course_id}/', tags=["Reviews"])
+def course_reviews(request, course_id: int):
+    """
+    Lihat semua review untuk sebuah course beserta rata-rata rating.
+
+    Path parameter:
+    - course_id : ID course
+
+    Response: list review + statistik rating
+    """
+    course = get_object_or_404(Course, pk=course_id)
+    reviews = Review.objects.filter(course=course).select_related('user')
+
+    from django.db.models import Avg, Count
+
+    stats = reviews.aggregate(
+        avg_rating=Avg('rating'),
+        total_reviews=Count('id')
+    )
+
+    review_list = []
+    for r in reviews:
+        review_list.append({
+            'id': r.id,
+            'user_id': r.user_id,
+            'username': r.user.username,
+            'rating': r.rating,
+            'comment': r.comment,
+            'created_at': r.created_at.isoformat(),
+        })
+
+    return {
+        'course_id': course_id,
+        'course_name': course.name,
+        'average_rating': round(stats['avg_rating'], 1) if stats['avg_rating'] else 0,
+        'total_reviews': stats['total_reviews'],
+        'reviews': review_list,
+    }
+
+
+@apiv1.put('reviews/{review_id}/', auth=apiAuth, tags=["Reviews"])
+def update_review(request, review_id: int, data: ReviewIn):
+    """
+    Update review milik sendiri.
+
+    Hanya pemilik review yang bisa update.
+
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+    review = get_object_or_404(Review, pk=review_id)
+
+    if review.user != user:
+        raise HttpError(403, "Kamu hanya bisa mengubah review milik sendiri")
+
+    review.rating = data.rating
+    review.comment = data.comment
+    review.save()
+
+    cache.delete(f'course_detail:{review.course_id}')
+
+    return {
+        'id': review.id,
+        'rating': review.rating,
+        'comment': review.comment,
+        'message': 'Review berhasil diperbarui'
+    }
+
+
+@apiv1.delete('reviews/{review_id}/', auth=apiAuth, response={204: None}, tags=["Reviews"])
+def delete_review(request, review_id: int):
+    """
+    Hapus review. Bisa dilakukan oleh pemilik review atau admin.
+
+    Authentication: Wajib login
+    """
+    user = User.objects.get(pk=request.user.id)
+    review = get_object_or_404(Review, pk=review_id)
+
+    if review.user != user and not user.is_superuser:
+        raise HttpError(403, "Hanya pemilik review atau admin yang bisa menghapus")
+
+    course_id = review.course_id
+    review.delete()
+
+    cache.delete(f'course_detail:{course_id}')
+
+    return 204, None

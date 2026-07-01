@@ -209,3 +209,30 @@ class ProgressOut(Schema):
     completed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+
+
+class ReviewIn(Schema):
+    """Schema untuk input saat membuat review course."""
+    course_id: int
+    rating: int
+    comment: str = ''
+
+    @field_validator('rating')
+    @classmethod
+    def validate_rating(cls, v):
+        if v < 1 or v > 5:
+            raise ValueError("Rating harus antara 1 sampai 5")
+        return v
+
+
+class ReviewOut(Schema):
+    """Schema untuk output data review."""
+    id: int
+    user_id: int
+    username: str
+    course_id: int
+    rating: int
+    comment: str
+    created_at: datetime
+    updated_at: datetime
+
