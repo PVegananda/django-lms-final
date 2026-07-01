@@ -3,17 +3,16 @@ services:
     build: .
     container_name: lms-app
     command: python manage.py runserver 0.0.0.0:8000
-    # command: tail -f /dev/null
     volumes:
       - ./code:/code
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - REDIS_URL=redis://redis:6379/0
-      - MONGO_URI=mongodb://admin:password123@mongodb:27017/lms_analytics?authSource=admin
-      - CELERY_BROKER_URL=amqp://admin:password123@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - DEBUG=${DEBUG:-True}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - MONGO_URI=${MONGO_URI:-mongodb://admin:password123@mongodb:27017/lms_analytics?authSource=admin}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-amqp://admin:password123@rabbitmq:5672//}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
     depends_on:
       - database
       - redis
@@ -24,9 +23,9 @@ services:
     image: postgres:16
     container_name: lms-db
     environment:
-      - POSTGRES_DB=lms_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-lms_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -45,8 +44,8 @@ services:
     image: mongo:7
     container_name: lms-mongodb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-password123}
     ports:
       - "27017:27017"
     volumes:
@@ -56,11 +55,11 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: lms-rabbitmq
     ports:
-      - "5672:5672"    # Port AMQP (komunikasi antar service)
-      - "15672:15672"  # Port Management UI (http://localhost:15672)
+      - "5672:5672"
+      - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=password123
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-admin}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-password123}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -76,10 +75,10 @@ services:
     volumes:
       - ./code:/code
     environment:
-      - CELERY_BROKER_URL=amqp://admin:password123@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-amqp://admin:password123@rabbitmq:5672//}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
       - DJANGO_SETTINGS_MODULE=lms.settings
-      - MONGO_URI=mongodb://admin:password123@mongodb:27017/lms_analytics?authSource=admin
+      - MONGO_URI=${MONGO_URI:-mongodb://admin:password123@mongodb:27017/lms_analytics?authSource=admin}
     depends_on:
       - app
       - rabbitmq
@@ -92,8 +91,8 @@ services:
     volumes:
       - ./code:/code
     environment:
-      - CELERY_BROKER_URL=amqp://admin:password123@rabbitmq:5672//
-      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-amqp://admin:password123@rabbitmq:5672//}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/2}
       - DJANGO_SETTINGS_MODULE=lms.settings
     depends_on:
       - celery_worker
