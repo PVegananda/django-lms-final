@@ -90,15 +90,17 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('comment', models.TextField(verbose_name='komentar')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
                 ('content_id', models.ForeignKey(
                     on_delete=django.db.models.deletion.CASCADE,
                     to='courses.coursecontent',
                     verbose_name='konten',
                 )),
-                ('member_id', models.ForeignKey(
+                ('user_id', models.ForeignKey(
                     on_delete=django.db.models.deletion.CASCADE,
-                    to='courses.coursemember',
-                    verbose_name='pengguna',
+                    to=settings.AUTH_USER_MODEL,
+                    verbose_name='penulis',
                 )),
             ],
             options={

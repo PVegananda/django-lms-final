@@ -442,7 +442,7 @@ class Command(BaseCommand):
             member = random.choice(course_members)
             to_create.append(Comment(
                 content_id=content,
-                member_id=member,
+                user_id=member.user_id,
                 comment=random.choice(COMMENTS),
             ))
 

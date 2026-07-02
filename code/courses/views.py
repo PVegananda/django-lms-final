@@ -22,5 +22,10 @@ Petunjuk Lab:
 
 from django.db.models import Avg, Count, Max, Min, Prefetch
 from django.http import JsonResponse
+from django.shortcuts import render
 
 from .models import Comment, Course, CourseContent, CourseMember
+
+def index(request):
+    """View untuk root URL yang menampilkan UI Landing Page."""
+    return render(request, 'index.html')

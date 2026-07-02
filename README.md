@@ -115,16 +115,38 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 
 ---
 
-## Dokumentasi API (Swagger)
+## Akses URL dan Login
 
-| API | URL | Keterangan |
-|-----|-----|------------|
-| **API v1** | http://localhost:8000/api/v1/docs | Endpoint utama LMS |
-| **API v2** | http://localhost:8000/api/v2/docs | Enhanced + Lab Optimization |
-| **Analytics** | http://localhost:8000/api/analytics/docs | MongoDB analytics |
-| **Admin Panel** | http://localhost:8000/admin/ | Django Admin |
-| **DB Profiling** | http://localhost:8000/silk/ | Query profiler |
-| **RabbitMQ UI** | http://localhost:15672/ | `admin` / `password123` |
+> **Catatan:** Endpoint API (`/api/v1/`, `/api/v2/`, `/api/analytics/`) adalah **REST API** yang mengembalikan **JSON**, bukan halaman web HTML. Untuk mencoba endpoint, gunakan **Swagger UI** (link `/docs` di bawah) yang sudah menyediakan form interaktif.
+
+| Layanan | URL | Keterangan / Login Default |
+|---|---|---|
+| **API v1 (Main)** | `http://localhost:8000/api/v1/docs` | Swagger Docs untuk semua core fitur LMS |
+| **API v2 (Enhanced)** | `http://localhost:8000/api/v2/docs` | Swagger Docs teroptimasi (No N+1 queries) |
+| **Analytics API** | `http://localhost:8000/api/analytics/docs` | MongoDB-based Analytics API Swagger Docs |
+| **Django Admin** | `http://localhost:8000/admin/` | Panel admin backend<br>**Login:** `admin` / `password123` |
+| **Django Silk** | `http://localhost:8000/silk/` | DB & Query Profiling (Tidak butuh login) |
+| **RabbitMQ** | `http://localhost:15672/` | Celery Broker UI<br>**Login:** `guest` / `guest` |
+
+### Cara Login API (Swagger UI)
+
+1. Buka http://localhost:8000/api/v1/docs
+2. Cari endpoint `POST /api/v1/auth/sign-in`
+3. Klik "Try it out", isi body:
+   ```json
+   {
+     "username": "dosen01",
+     "password": "password123"
+   }
+   ```
+4. Klik "Execute" → copy nilai `access` dari response
+5. Klik tombol **"Authorize"** di pojok kanan atas Swagger
+6. Paste token dengan format: `Bearer <token_yang_dicopy>`
+7. Sekarang semua endpoint yang butuh auth bisa diakses
+
+> [!WARNING]  
+> **Akun `dosen01` atau `mhs001` BUKAN untuk Django Admin!**  
+> Jika Anda mencoba login di `http://localhost:8000/admin/` menggunakan akun dosen/mahasiswa, pasti akan ditolak (error salah password/akun). Django Admin hanya bisa diakses oleh akun yang memiliki status *Staff/Superuser*. Silakan gunakan akun yang Anda buat melalui `docker compose exec app python manage.py createsuperuser`.
 
 ---
 

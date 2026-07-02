@@ -11,6 +11,7 @@ from ninja import Schema, Field
 from datetime import datetime
 from typing import Optional, List
 from pydantic import field_validator
+from .models import CourseMember
 
 
 class UserOut(Schema):
@@ -137,13 +138,13 @@ class CourseMemberIn(Schema):
     roles: str = 'std'  # 'std' = Siswa, 'ast' = Asisten
 
 
-class CourseMemberOut(Schema):
+from ninja import ModelSchema
+
+class CourseMemberOut(ModelSchema):
     """Schema untuk output data CourseMember."""
-    id: int
-    course_id: int
-    user_id: int
-    roles: str
-    created_at: datetime
+    class Meta:
+        model = CourseMember
+        fields = ['id', 'course_id', 'user_id', 'roles']
 
 
 class CommentIn(Schema):
