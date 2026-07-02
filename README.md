@@ -1,5 +1,9 @@
 # Django LMS Final Project
 
+> **Mata Kuliah:** Pemrograman Sisi Server  
+> **NIM:** A11.2025.16575  
+> **Nama:** P. Vegananda
+
 Project ini adalah pengembangan lanjutan dari **Simple LMS** yang dibuat di tugas sebelumnya.
 Dibangun menggunakan **Django Ninja** (REST API) dengan stack lengkap:
 PostgreSQL, Redis, MongoDB, RabbitMQ, dan Celery.
@@ -10,7 +14,7 @@ PostgreSQL, Redis, MongoDB, RabbitMQ, dan Celery.
 |------|------------|------|
 | **SimpleLMS** | Project awal (Tugas 1–5): Django + PostgreSQL, model dasar, DB optimization | https://github.com/PVegananda/simplelms |
 | **Django Ninja** | Lanjutan (Tugas 6–13): REST API, JWT, Redis, MongoDB, Celery | https://github.com/PVegananda/django-ninja |
-| **Final Project** | Repo ini — gabungan semua + fitur tambahan | (repo ini) |
+| **Final Project** | Repo ini — gabungan semua + fitur tambahan Final Project | (repo ini) |
 
 ### Dokumentasi Per Tugas
 
@@ -31,7 +35,7 @@ Setiap tugas sudah didokumentasikan dalam file `.md` masing-masing di folder `do
 | [`docs/tugas-12.md`](docs/tugas-12.md) | MongoDB Analytics | Activity logging, aggregation pipeline |
 | [`docs/tugas-13.md`](docs/tugas-13.md) | Message Brokers | Celery, RabbitMQ, periodic tasks, Flower |
 
-
+---
 
 ## Cara Menjalankan
 
@@ -72,11 +76,8 @@ docker compose exec app python manage.py migrate
 
 ### 4. Isi data demo
 ```bash
-# Seed data utama (users, courses, contents, dll)
+# Seed data utama (users, courses, categories, reviews, dll)
 docker compose exec app python manage.py seed_data
-
-# Import data dari SimpleLMS (project sebelumnya)
-docker compose exec app python manage.py import_from_simplelms
 
 # Isi data analytics MongoDB
 docker compose exec app python manage.py seed_analytics --count 200
@@ -90,6 +91,16 @@ docker compose exec app python manage.py make_jwt_key
 docker compose exec app python manage.py createsuperuser
 ```
 
+### 6. Jalankan tests
+```bash
+# Jalankan semua test
+docker compose exec app python manage.py test courses -v 2
+
+# Dengan coverage report
+docker compose exec app coverage run manage.py test courses
+docker compose exec app coverage report
+```
+
 ---
 
 ## Akun Demo
@@ -98,10 +109,8 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 
 | Role | Username | Password | Keterangan |
 |------|----------|----------|------------|
-| **Instructor** | `dosen01` | `password123` | Teacher course 1-10 |
-| **Instructor** | `dosen02` | `password123` | Teacher course 11-20 |
-| **Student** | `siswa01` | `password123` | Enrolled di beberapa course |
-| **Student** | `siswa02` | `password123` | Enrolled di beberapa course |
+| **Instructor** | `dosen01` – `dosen20` | `password123` | Teacher, role=instructor |
+| **Student** | `mhs001` – `mhs080` | `password123` | Mahasiswa, role=student |
 | **Admin** | (buat sendiri) | (buat sendiri) | Akses penuh via `createsuperuser` |
 
 ---
@@ -139,6 +148,19 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 | GET | `/api/v1/courses/popular/` | — | Top 10 course (Redis leaderboard) |
 | POST | `/api/v1/course/{id}/enroll/` | ✅ | Daftar ke course |
 | GET | `/api/v1/mycourses/` | ✅ | Course yang diikuti |
+
+### Reviews (Final Project)
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| POST | `/api/v1/reviews/` | ✅ | Buat review (hanya enrolled student, 1x per course) |
+| GET | `/api/v1/reviews/course/{id}/` | — | Lihat review + rata-rata rating |
+| PUT | `/api/v1/reviews/{id}/` | ✅ | Update review (pemilik only) |
+| DELETE | `/api/v1/reviews/{id}/` | ✅ | Hapus review (pemilik/admin) |
+
+### Dashboard (Final Project)
+| Method | Endpoint | Auth | Keterangan |
+|--------|----------|------|------------|
+| GET | `/api/v1/dashboard/` | ✅ | Dashboard mahasiswa (enrolled courses, progress, rekomendasi) |
 
 ### Progress Belajar
 | Method | Endpoint | Auth | Keterangan |
@@ -187,8 +209,25 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 | Parameter | Contoh | Keterangan |
 |-----------|--------|------------|
 | `search` | `?search=Python` | Cari berdasarkan nama/deskripsi |
+| `category_id` | `?category_id=1` | Filter berdasarkan kategori |
+| `instructor` | `?instructor=dosen01` | Filter berdasarkan username dosen |
 | `ordering` | `?ordering=price` | Urut: name, price, created_at (tambah `-` untuk descending) |
 | `page` | `?page=2` | Pagination, 10 item per halaman |
+
+---
+
+## Fitur Final Project
+
+| Fitur | Kategori | Implementasi |
+|-------|----------|-------------|
+| **Rating & Review** | Course Experience | Model Review, endpoint CRUD, rata-rata rating |
+| **Student Dashboard** | Course Experience | Endpoint ringkasan: enrolled courses, progress, rekomendasi |
+| **Search + Filter Lanjutan** | Course Experience | Filter category, instructor, search, sorting, pagination |
+| **Role System** | Authentication | UserProfile dengan role admin/instructor/student |
+| **Redis Caching** | Performance | Cache-aside pattern, invalidation, leaderboard |
+| **MongoDB Analytics** | Analytics | Activity logging, aggregation pipeline, daily stats |
+| **Celery Tasks** | Async Processing | Email notification, report generation, periodic cleanup |
+| **Automated Testing** | Quality | 40+ test cases: unit, integration, RBAC |
 
 ---
 
@@ -197,7 +236,7 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 | Komponen | Teknologi | Versi |
 |----------|-----------|-------|
 | Backend | Django + Django Ninja | 5.1 + 1.1 |
-| Database | PostgreSQL | 15 |
+| Database | PostgreSQL | 16 |
 | Cache | Redis + django-redis | 7 |
 | NoSQL | MongoDB + pymongo | 7 + 4.6 |
 | Message Broker | RabbitMQ | 3 |
@@ -214,11 +253,12 @@ Setelah menjalankan `seed_data`, akun-akun berikut sudah tersedia:
 django-lms-final/
 ├── code/
 │   ├── courses/          # App utama LMS
-│   │   ├── models.py     # Course, Category, Member, Content, Comment, Progress
-│   │   ├── apiv1.py      # REST API v1 (endpoint utama)
+│   │   ├── models.py     # Course, Category, Member, Content, Comment, Progress, Review, UserProfile
+│   │   ├── apiv1.py      # REST API v1 (endpoint utama + review + dashboard)
 │   │   ├── apiv2.py      # REST API v2 (enhanced + lab optimization)
-│   │   ├── schemas.py    # Pydantic schemas
+│   │   ├── schemas.py    # Pydantic schemas (termasuk ReviewIn/ReviewOut)
 │   │   ├── tasks.py      # Celery async tasks
+│   │   ├── tests.py      # Test suite (40+ test cases)
 │   │   └── filters.py    # Filter classes
 │   ├── analytics/        # MongoDB analytics
 │   ├── lms/              # Django project config
@@ -227,7 +267,10 @@ django-lms-final/
 │   │   └── urls.py       # URL routing
 │   ├── utils/            # Redis & MongoDB client helpers
 │   └── fixtures/         # Data CSV dari SimpleLMS
+├── docs/                 # Dokumentasi per tugas (01–13)
 ├── .env.example          # Template environment variables
 ├── docker-compose.yml    # Stack lengkap 7 services
-└── Dockerfile
+├── Dockerfile
+├── FINAL_PROJECT_REPORT.md
+└── README.md
 ```
